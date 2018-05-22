@@ -8,7 +8,7 @@ using namespace std;
 
 int main(int argc, char **argv)
 {
-
+	
 	Ptr<TrackerKCF> tracker;
 
 	tracker = TrackerKCF::create();

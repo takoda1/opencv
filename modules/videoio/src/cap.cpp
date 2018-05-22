@@ -765,7 +765,6 @@ double VideoCapture::get(int propId) const
     return icvGetCaptureProperty(cap, propId);
 }
 
-
 VideoWriter::VideoWriter()
 {}
 
