@@ -46,7 +46,7 @@
 #if defined HAVE_FFMPEG && !defined _WIN32
 #include "cap_ffmpeg_impl.hpp"
 #else
-#include "cap_ffmpeg_api.hpp"
+#include "d_api.hpp"
 #endif
 
 static CvCreateFileCapture_Plugin icvCreateFileCapture_FFMPEG_p = 0;

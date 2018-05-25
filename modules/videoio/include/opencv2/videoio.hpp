@@ -820,6 +820,10 @@ class CV_EXPORTS_W RCVideoCapture{
         but with frame by frame rate control.
     */
     public:
+    
+    static VideoCapture vc;
+    
+    CV_WRAP RCVideoCapture();
 
     CV_WRAP RCVideoCapture(const String& url);
 
@@ -832,16 +836,18 @@ class CV_EXPORTS_W RCVideoCapture{
     CV_WRAP virtual bool isOpened() const;
 
     CV_WRAP virtual bool grab(int targetSize);
-    
-    CV_WRAP virtual bool retrieve(OutputArray image, int actualSize, int mapId);
 
-    CV_WRAP virtual bool read(int targetSize, OutputArray image, int actualSize, int mapId);
+    CV_WRAP virtual void release(); //not used for now because not opening cameras
+    
+    CV_WRAP virtual bool retrieve(OutputArray& image, int actualSize, int mapId);
+
+    CV_WRAP virtual bool read(int targetSize, OutputArray& image, int actualSize, int mapId);
 
     CV_WRAP virtual bool set(int propId, double value);
 
     CV_WRAP virtual double get(int propId) const;
 
-    CV_WRAP virtual bool setSaliencyMap(Mat saliencyMap, int id);
+    CV_WRAP virtual bool setSaliencyMap(const Mat& saliencyMap, int id);
 
     CV_WRAP virtual Mat getSaliencyMap();
 };

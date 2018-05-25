@@ -764,6 +764,54 @@ double VideoCapture::get(int propId) const
         return icap->getProperty(propId);
     return icvGetCaptureProperty(cap, propId);
 }
+RCVideoCapture::RCVideoCapture()
+{
+    VideoCapture temp();
+    VideoCapture RCVideoCapture::vc = temp;
+}
+
+RCVideoCapture::RCVideoCapture(const String& filename, int apiPreference)
+{
+    VideoCapture temp(filename, apiPreference);
+    VideoCapture RCVideoCapture::vc = temp;
+    CV_TRACE_FUNCTION();
+    open(filename, apiPreference);
+}
+
+RCVideoCapture::RCVideoCapture(const String& filename)
+{
+    CV_TRACE_FUNCTION();
+    VideoCapture temp(filename);
+    VideoCapture RCVideoCapture::vc = temp;
+    open(filename, CAP_ANY);
+}
+
+bool RCVideoCapture::open(const String& filename, int apiPreference)
+{
+    CV_TRACE_FUNCTION();
+    return VideoCapture RCVideoCapture::vc.open(filename,apiPreference);
+}
+
+bool RCVideoCapture::open(const String& filename)
+{
+   CV_TRACE_FUNCTION();
+    return VideoCapture RCVideoCapture::vc.open(filename);
+}
+
+bool RCVideoCapture::isOpened() const
+{
+    return VideoCapture RCVideoCapture::vc.isOpened();
+}
+
+bool RCVideoCapture::set(int propId, double value)
+{
+    return VideoCapture RCVideoCapture::vc.set(propId,value);
+}
+
+double RCVideoCapture::get(int propId) const
+{
+    return VideoCapture RCVideoCapture::vc.get(propId);
+}
 
 
 VideoWriter::VideoWriter()
