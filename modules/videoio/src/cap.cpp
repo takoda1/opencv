@@ -43,6 +43,7 @@
 #include <iostream>
 using namespace std;
 #include "cap_intelperc.hpp"
+#include "cap_librealsense.hpp"
 #include "cap_dshow.hpp"
 
 #ifdef HAVE_MFX
@@ -297,12 +298,6 @@ CV_IMPL CvCapture * cvCreateFileCaptureWithPreference (const char * filename, in
         // bail out to let the user know that it is not available
         if (apiPreference) break;
 
-#ifdef HAVE_FFMPEG
-    case CAP_FFMPEG:
-        TRY_OPEN(result, cvCreateFileCapture_FFMPEG_proxy (filename))
-        if (apiPreference) break;
-#endif
-
 #if defined HAVE_LIBV4L || defined HAVE_CAMV4L || defined HAVE_CAMV4L2 || defined HAVE_VIDEOIO
     case CAP_V4L:
         TRY_OPEN(result, cvCreateCameraCapture_V4L(filename))
@@ -383,11 +378,6 @@ static CvVideoWriter* cvCreateVideoWriterWithPreference(const char* filename, in
         default:
             //exit if the specified API is unavaliable
             if (apiPreference != CAP_ANY) break;
-        #ifdef HAVE_FFMPEG
-        case CAP_FFMPEG:
-            TRY_OPEN(result, cvCreateVideoWriter_FFMPEG_proxy (filename, fourcc, fps, frameSize, is_color))
-            if (apiPreference != CAP_ANY) break;
-        #endif
         #ifdef HAVE_MSMF
         case CAP_MSMF:
             TRY_OPEN(result, cvCreateVideoWriter_MSMF(filename, fourcc, fps, frameSize, is_color))
@@ -481,6 +471,7 @@ static Ptr<IVideoCapture> IVideoCapture_create(int index)
 #if defined(HAVE_GSTREAMER)    || \
     defined(HAVE_DSHOW)        || \
     defined(HAVE_INTELPERC)    || \
+    defined(HAVE_LIBREALSENSE) || \
     defined(WINRT_VIDEO)       || \
     defined(HAVE_GPHOTO2)      || \
     (0)
@@ -502,6 +493,10 @@ static Ptr<IVideoCapture> IVideoCapture_create(int index)
             case CAP_INTELPERC:
                 capture = makePtr<VideoCapture_IntelPerC>();
                 break; // CAP_INTEL_PERC
+#elif defined(HAVE_LIBREALSENSE)
+            case CAP_INTELPERC:
+                capture = makePtr<VideoCapture_LibRealsense>(index);
+                break;
 #endif
 #ifdef WINRT_VIDEO
         case CAP_WINRT:
@@ -530,6 +525,14 @@ static Ptr<IVideoCapture> IVideoCapture_create(const String& filename, int apiPr
 {
     bool useAny = (apiPreference == CAP_ANY);
     Ptr<IVideoCapture> capture;
+#ifdef HAVE_FFMPEG
+    if (useAny || apiPreference == CAP_FFMPEG)
+    {
+        capture = cvCreateFileCapture_FFMPEG_proxy(filename);
+        if (capture && capture->isOpened())
+            return capture;
+    }
+#endif
 #ifdef HAVE_GSTREAMER
     if (useAny || apiPreference == CAP_GSTREAMER)
     {
@@ -576,6 +579,14 @@ static Ptr<IVideoCapture> IVideoCapture_create(const String& filename, int apiPr
 static Ptr<IVideoWriter> IVideoWriter_create(const String& filename, int apiPreference, int _fourcc, double fps, Size frameSize, bool isColor)
 {
     Ptr<IVideoWriter> iwriter;
+#ifdef HAVE_FFMPEG
+    if (apiPreference == CAP_FFMPEG || apiPreference == CAP_ANY)
+    {
+        iwriter = cvCreateVideoWriter_FFMPEG_proxy(filename, _fourcc, fps, frameSize, isColor);
+        if (!iwriter.empty())
+            return iwriter;
+    }
+#endif
 #ifdef HAVE_MFX
     if (apiPreference == CAP_INTEL_MFX || apiPreference == CAP_ANY)
     {

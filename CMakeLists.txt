@@ -269,6 +269,7 @@ OCV_OPTION(WITH_OPENCLAMDFFT   "Include AMD OpenCL FFT library support"      ON 
 OCV_OPTION(WITH_OPENCLAMDBLAS  "Include AMD OpenCL BLAS library support"     ON   IF (NOT ANDROID AND NOT IOS AND NOT WINRT) )
 OCV_OPTION(WITH_DIRECTX        "Include DirectX support"                     ON   IF (WIN32 AND NOT WINRT) )
 OCV_OPTION(WITH_INTELPERC      "Include Intel Perceptual Computing support"  OFF  IF (WIN32 AND NOT WINRT) )
+OCV_OPTION(WITH_LIBREALSENSE   "Include Intel librealsense support"          OFF  IF (NOT WITH_INTELPERC) )
 OCV_OPTION(WITH_MATLAB         "Include Matlab support"                      ON   IF (NOT ANDROID AND NOT IOS AND NOT WINRT))
 OCV_OPTION(WITH_VA             "Include VA support"                          OFF  IF (UNIX AND NOT ANDROID) )
 OCV_OPTION(WITH_VA_INTEL       "Include Intel VA-API/OpenCL support"         OFF  IF (UNIX AND NOT ANDROID) )
@@ -278,6 +279,9 @@ OCV_OPTION(WITH_GPHOTO2        "Include gPhoto2 library support"             ON 
 OCV_OPTION(WITH_LAPACK         "Include Lapack library support"              (NOT CV_DISABLE_OPTIMIZATION)  IF (NOT ANDROID AND NOT IOS) )
 OCV_OPTION(WITH_ITT            "Include Intel ITT support"                   ON   IF (NOT APPLE_FRAMEWORK) )
 OCV_OPTION(WITH_PROTOBUF       "Enable libprotobuf"                          ON )
+OCV_OPTION(WITH_IMGCODEC_HDR   "Include HDR support"                         ON)
+OCV_OPTION(WITH_IMGCODEC_SUNRASTER "Include SUNRASTER support"               ON)
+OCV_OPTION(WITH_IMGCODEC_PXM   "Include PNM (PBM,PGM,PPM) and PAM formats support" ON)
 
 # OpenCV build components
 # ===================================================
@@ -1209,6 +1213,18 @@ endif()
 
 if(WITH_GDCM OR HAVE_GDCM)
   status("    GDCM:" HAVE_GDCM THEN "YES (ver ${GDCM_VERSION})" ELSE "NO")
+endif()
+
+if(WITH_IMGCODEC_HDR OR DEFINED HAVE_IMGCODEC_HDR)
+  status("    HDR:" HAVE_IMGCODEC_HDR THEN "YES" ELSE "NO")
+endif()
+
+if(WITH_IMGCODEC_SUNRASTER OR DEFINED HAVE_IMGCODEC_SUNRASTER)
+  status("    SUNRASTER:" HAVE_IMGCODEC_SUNRASTER THEN "YES" ELSE "NO")
+endif()
+
+if(WITH_IMGCODEC_PXM OR DEFINED HAVE_IMGCODEC_PXM)
+  status("    PXM:" HAVE_IMGCODEC_PXM THEN "YES" ELSE "NO")
 endif()
 
 # ========================== VIDEO IO ==========================
