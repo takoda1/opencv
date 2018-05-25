@@ -812,7 +812,7 @@ protected:
     Ptr<IVideoCapture> icap;
 };
 
-class CV_EXPORTS_W RCVideoCapture{
+class CV_EXPORTS_W RCVideoCapture:public VideoCapture{
 
     /*
         RCVideoCapture class definition
@@ -821,31 +821,31 @@ class CV_EXPORTS_W RCVideoCapture{
     */
     public:
     
-    static VideoCapture vc;
-    
     CV_WRAP RCVideoCapture();
 
     CV_WRAP RCVideoCapture(const String& url);
 
     CV_WRAP RCVideoCapture(const String& url, int apiPreference);
 
-    CV_WRAP virtual bool open(const String& url);
+    //CV_WRAP virtual bool open(const String& url);
 
-    CV_WRAP virtual bool open(const String& url, int apiPreference);
+    //CV_WRAP virtual bool open(const String& url, int apiPreference);
 
-    CV_WRAP virtual bool isOpened() const;
+    //CV_WRAP virtual bool isOpened() const;
 
     CV_WRAP virtual bool grab(int targetSize);
 
-    CV_WRAP virtual void release(); //not used for now because not opening cameras
+    virtual ~RCVideoCapture();
+
+    //CV_WRAP virtual void release();
     
     CV_WRAP virtual bool retrieve(OutputArray& image, int actualSize, int mapId);
 
     CV_WRAP virtual bool read(int targetSize, OutputArray& image, int actualSize, int mapId);
 
-    CV_WRAP virtual bool set(int propId, double value);
+    //CV_WRAP virtual bool set(int propId, double value);
 
-    CV_WRAP virtual double get(int propId) const;
+    //CV_WRAP virtual double get(int propId) const;
 
     CV_WRAP virtual bool setSaliencyMap(const Mat& saliencyMap, int id);
 
