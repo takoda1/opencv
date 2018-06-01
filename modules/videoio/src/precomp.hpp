@@ -194,6 +194,7 @@ namespace cv
     Ptr<IVideoCapture> createGStreamerCapture(int index);
 
     Ptr<cv::IVideoCapture> cvCreateFileCapture_FFMPEG_proxy(const String& filename);
+    Ptr<cv::IVideoCapture> cvCreateFileCapture_FFMPEG_proxyRC(const String& filename);
     Ptr<IVideoWriter> cvCreateVideoWriter_FFMPEG_proxy(const String& filename, int fourcc, double fps, Size frameSize, int isColor);
 }
 

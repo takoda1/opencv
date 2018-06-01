@@ -575,6 +575,13 @@ static Ptr<IVideoCapture> IVideoCapture_create(const String& filename, int apiPr
         capture.release();
     return capture;
 }
+/*
+Created by Chase and Takoda for RC Implementation
+*/
+static Ptr<IVideoCapture> IVideoCapture_createRC(const String& filename){
+    Ptr<IVideoCapture> capture = cvCreateFileCapture_FFMPEG_proxy(filename);
+    return capture;
+}
 
 static Ptr<IVideoWriter> IVideoWriter_create(const String& filename, int apiPreference, int _fourcc, double fps, Size frameSize, bool isColor)
 {
@@ -629,6 +636,7 @@ VideoCapture::~VideoCapture()
     CV_TRACE_FUNCTION();
 
     icap.release();
+
     cap.release();
 }
 
@@ -776,44 +784,79 @@ double VideoCapture::get(int propId) const
     return icvGetCaptureProperty(cap, propId);
 }
 
+/*
+RCVideoCapture implementation by Chase and Takoda
+*/
 
 RCVideoCapture::RCVideoCapture()
 {}
 
-RCVideoCapture::RCVideoCapture(const String& filename, int apiPreference):VideoCapture(filename, apiPreference)
-{}
-
-RCVideoCapture::RCVideoCapture(const String& filename) : VideoCapture(filename)
-{}
-
-RCVideoCapture::~RCVideoCapture(){
-    VideoCapture RCVideoCapture::vc.~VideoCapture();
+RCVideoCapture::RCVideoCapture(const String& filename){
+    CV_TRACE_FUNCTION();
+    open(filename);
 }
 
-/*bool RCVideoCapture::open(const String& filename, int apiPreference)
-{
+RCVideoCapture::~RCVideoCapture(){
     CV_TRACE_FUNCTION();
-    return VideoCapture RCVideoCapture::vc.open(filename,apiPreference);
+
+    icap.release();
 }
 
 bool RCVideoCapture::open(const String& filename)
 {
-   CV_TRACE_FUNCTION();
-    return VideoCapture RCVideoCapture::vc.open(filename);
+    CV_TRACE_FUNCTION();
+    if(isOpened()) release();
+    icap = IVideoCapture_createRC(filename);
+    if (!icap.empty())
+        return true;
+    return isOpened();
 }
 
 bool RCVideoCapture::isOpened() const
 {
-    return VideoCapture RCVideoCapture::vc.isOpened();
+    return (!icap.empty());
 }
 
 void RCVideoCapture::release(){
-    VideoCapture RCVideoCapture::vc.release();
-}*/
-
-bool RCVideoCapture::grab(){
-
+    CV_TRACE_FUNCTION();
+    icap.release();
 }
+
+bool RCVideoCapture::grab(int targetSize){
+    CV_INSTRUMENT_REGION();
+
+    return icap->grabFrame(targetSize);
+}
+
+bool RCVideoCapture::retrieve(OutputArray& image, int actualSize, int mapId){
+    CV_INSTRUMENT_REGION();
+
+    return icap->retrieveFrame(image, actualSize, mapId);
+}
+
+bool RCVideoCapture::read(int targetSize, OutputArray& image, int actualSize, int mapId){
+    CV_INSTRUMENT_REGION()
+
+    if(grab(targetSize))
+        retrieve(image, actualSize, mapId);
+    else
+        image.release();
+    return !image.empty();
+}
+
+bool RCVideoCapture::setSaliencyMap(const Mat& saliencyMap, int id){}
+
+Mat RCVideoCapture::getSaliencyMap(){}
+
+bool RCVideoCapture::set(int propId, double value){
+    return icap->setProperty(propId, value);
+}
+
+double RCVideoCapture::get(int propId) const
+{
+    return icap->getProperty(propId);
+}
+
 
 
 VideoWriter::VideoWriter()

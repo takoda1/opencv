@@ -812,7 +812,7 @@ protected:
     Ptr<IVideoCapture> icap;
 };
 
-class CV_EXPORTS_W RCVideoCapture:public VideoCapture{
+class CV_EXPORTS_W RCVideoCapture{
 
     /*
         RCVideoCapture class definition
@@ -822,34 +822,35 @@ class CV_EXPORTS_W RCVideoCapture:public VideoCapture{
     public:
     
     CV_WRAP RCVideoCapture();
-
+    //no apipreference constructor because we are implementing using ffmpeg
     CV_WRAP RCVideoCapture(const String& url);
 
-    CV_WRAP RCVideoCapture(const String& url, int apiPreference);
+    CV_WRAP virtual bool open(const String& url);
 
-    //CV_WRAP virtual bool open(const String& url);
-
-    //CV_WRAP virtual bool open(const String& url, int apiPreference);
-
-    //CV_WRAP virtual bool isOpened() const;
+    CV_WRAP virtual bool isOpened() const;
 
     CV_WRAP virtual bool grab(int targetSize);
 
     virtual ~RCVideoCapture();
 
-    //CV_WRAP virtual void release();
+    CV_WRAP virtual void release();
     
     CV_WRAP virtual bool retrieve(OutputArray& image, int actualSize, int mapId);
 
     CV_WRAP virtual bool read(int targetSize, OutputArray& image, int actualSize, int mapId);
 
-    //CV_WRAP virtual bool set(int propId, double value);
+    CV_WRAP virtual bool set(int propId, double value);
 
-    //CV_WRAP virtual double get(int propId) const;
+    CV_WRAP virtual double get(int propId) const;
 
     CV_WRAP virtual bool setSaliencyMap(const Mat& saliencyMap, int id);
 
     CV_WRAP virtual Mat getSaliencyMap();
+
+    int targetSize;
+
+protected:
+    Ptr<IVideoCapture> icap;
 };
 
 class IVideoWriter;

@@ -46,7 +46,7 @@
 #if defined HAVE_FFMPEG && !defined _WIN32
 #include "cap_ffmpeg_impl.hpp"
 #else
-#include "d_api.hpp"
+#include "cap_ffmpeg_api.hpp"
 #endif
 
 static CvCreateFileCapture_Plugin icvCreateFileCapture_FFMPEG_p = 0;
@@ -195,7 +195,6 @@ private:
     }
 };
 
-
 class CvCapture_FFMPEG_proxy CV_FINAL : public cv::IVideoCapture
 {
 public:
@@ -211,10 +210,12 @@ public:
     {
         return ffmpegCapture ? icvSetCaptureProperty_FFMPEG_p(ffmpegCapture, propId, value)!=0 : false;
     }
+
     virtual bool grabFrame() CV_OVERRIDE
     {
         return ffmpegCapture ? icvGrabFrame_FFMPEG_p(ffmpegCapture)!=0 : false;
     }
+    
     virtual bool retrieveFrame(int, cv::OutputArray frame) CV_OVERRIDE
     {
         unsigned char* data = 0;
@@ -226,6 +227,23 @@ public:
         cv::Mat(height, width, CV_MAKETYPE(CV_8U, cn), data, step).copyTo(frame);
         return true;
     }
+
+    virtual bool grabFrame(int targetSize)
+    {
+        return ffmpegCapture ? icvGrabFrame_FFMPEG_p(ffmpegCapture)!=0 : false;
+    }
+    virtual bool retrieveFrame(int, cv::OutputArray frame, int actualSize, int mapId)
+    {
+        unsigned char* data = 0;
+        int step=0, width=0, height=0, cn=0;
+
+        if (!ffmpegCapture ||
+           !icvRetrieveFrame_FFMPEG_p(ffmpegCapture, &data, &step, &width, &height, &cn))
+            return false;
+        cv::Mat(height, width, CV_MAKETYPE(CV_8U, cn), data, step).copyTo(frame);
+        return true;
+    }
+    
     virtual bool open( const cv::String& filename )
     {
         icvInitFFMPEG::Init();
