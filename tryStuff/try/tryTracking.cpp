@@ -13,7 +13,7 @@ int main(int argc, char **argv)
 
 	tracker = TrackerKCF::create();
 
-	VideoCapture video("./Super Negative Swimmers-aOmIk7Q4bBU.mkv");
+	VideoCapture video("./Moving Dot Motion Blur Test-QkWE94l-txI.mp4");
 
 	if(!video.isOpened())
 	{

@@ -843,11 +843,11 @@ class CV_EXPORTS_W RCVideoCapture{
 
     CV_WRAP virtual double get(int propId) const;
 
-    CV_WRAP virtual bool setSaliencyMap(const Mat& saliencyMap, int id);
+    //CV_WRAP virtual bool setSaliencyMap(const Mat& saliencyMap, int id);
 
-    CV_WRAP virtual Mat getSaliencyMap();
+    //CV_WRAP virtual Mat getSaliencyMap();
 
-    int targetSize;
+    int targetBitrate;
 
 protected:
     Ptr<IVideoCapture> icap;

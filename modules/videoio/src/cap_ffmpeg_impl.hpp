@@ -1352,7 +1352,7 @@ bool CvCapture_FFMPEG::grabFrame(int size)
     return valid;
 }
 
-bool CvCapture_FFMPEG_RC::retrieveFrame(int, unsigned char** data, int* step, int* width, int* height, int* cn)
+bool CvCapture_FFMPEG::retrieveFrame(int, unsigned char** data, int* step, int* width, int* height, int* cn, int* actualSize, int* mapId)
 {
     if( !video_st || !picture->data[0] )
         return false;

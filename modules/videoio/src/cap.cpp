@@ -844,9 +844,9 @@ bool RCVideoCapture::read(int targetSize, OutputArray& image, int actualSize, in
     return !image.empty();
 }
 
-bool RCVideoCapture::setSaliencyMap(const Mat& saliencyMap, int id){}
+//bool RCVideoCapture::setSaliencyMap(const Mat& saliencyMap, int id){}
 
-Mat RCVideoCapture::getSaliencyMap(){}
+//Mat RCVideoCapture::getSaliencyMap(){}
 
 bool RCVideoCapture::set(int propId, double value){
     return icap->setProperty(propId, value);
