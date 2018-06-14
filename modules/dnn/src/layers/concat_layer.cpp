@@ -103,7 +103,7 @@ public:
 
     virtual bool supportBackend(int backendId) CV_OVERRIDE
     {
-        return backendId == DNN_BACKEND_OPENCV ||
+        return backendId == DNN_BACKEND_DEFAULT ||
                backendId == DNN_BACKEND_HALIDE && haveHalide() && axis == 1 && !padding ||  // By channels
                backendId == DNN_BACKEND_INFERENCE_ENGINE && haveInfEngine() && !padding;
     }

@@ -736,6 +736,7 @@ int64 getCPUTickCount(void)
 
 int64 getCPUTickCount(void)
 {
+    int64 result = 0;
     unsigned upper, lower, tmp;
     __asm__ volatile(
                      "0:                  \n"

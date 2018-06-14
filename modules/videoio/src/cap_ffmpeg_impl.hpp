@@ -204,7 +204,7 @@ static
 inline void get_monotonic_time(timespec *tv)
 {
     LARGE_INTEGER           t;
-    FILETIME                f;
+    FILETIME				f;
     double                  microseconds;
     static LARGE_INTEGER    offset;
     static double           frequencyToMicroseconds;
@@ -1123,6 +1123,7 @@ added by Chase and Takoda for RC implementation
 */
 bool CvCapture_FFMPEG::grabFrame(int size)
 {
+    std::cout << "ABC";
     targetSize = size;
     bool valid = false;
     int got_picture;
@@ -2411,7 +2412,7 @@ int cvRetrieveFrame_FFMPEG(CvCapture_FFMPEG* capture, unsigned char** data, int*
 next two methods added by Takoda and Chase for RC implementation
 */
 int cvGrabFrame_FFMPEG_RC(CvCapture_FFMPEG* capture, int targetSize){
-
+    
     return capture->grabFrame(targetSize);
 }
 

@@ -10,11 +10,9 @@
 
 #include "opencv2/dnn/shape_utils.hpp"
 
-#include "../test/test_common.hpp"
-
 namespace opencv_test {
 
-CV_ENUM(DNNBackend, DNN_BACKEND_DEFAULT, DNN_BACKEND_HALIDE, DNN_BACKEND_INFERENCE_ENGINE, DNN_BACKEND_OPENCV)
+CV_ENUM(DNNBackend, DNN_BACKEND_DEFAULT, DNN_BACKEND_HALIDE, DNN_BACKEND_INFERENCE_ENGINE)
 CV_ENUM(DNNTarget, DNN_TARGET_CPU, DNN_TARGET_OPENCL, DNN_TARGET_OPENCL_FP16, DNN_TARGET_MYRIAD)
 
 class DNNTestNetwork : public ::perf::TestBaseWithParam< tuple<DNNBackend, DNNTarget> >
@@ -31,10 +29,32 @@ public:
         target = (dnn::Target)(int)get<1>(GetParam());
     }
 
+    static bool checkMyriadTarget()
+    {
+#ifndef HAVE_INF_ENGINE
+        return false;
+#endif
+        cv::dnn::Net net;
+        cv::dnn::LayerParams lp;
+        net.addLayerToPrev("testLayer", "Identity", lp);
+        net.setPreferableBackend(cv::dnn::DNN_BACKEND_INFERENCE_ENGINE);
+        net.setPreferableTarget(cv::dnn::DNN_TARGET_MYRIAD);
+        net.setInput(cv::Mat::zeros(1, 1, CV_32FC1));
+        try
+        {
+            net.forward();
+        }
+        catch(...)
+        {
+            return false;
+        }
+        return true;
+    }
+
     void processNet(std::string weights, std::string proto, std::string halide_scheduler,
                     const Mat& input, const std::string& outputLayer = "")
     {
-        if (backend == DNN_BACKEND_OPENCV && (target == DNN_TARGET_OPENCL || target == DNN_TARGET_OPENCL_FP16))
+        if (backend == DNN_BACKEND_DEFAULT && target == DNN_TARGET_OPENCL)
         {
 #if defined(HAVE_OPENCL)
             if (!cv::ocl::useOpenCL())
@@ -129,7 +149,7 @@ PERF_TEST_P_(DNNTestNetwork, Inception_5h)
 PERF_TEST_P_(DNNTestNetwork, ENet)
 {
     if ((backend == DNN_BACKEND_INFERENCE_ENGINE) ||
-        (backend == DNN_BACKEND_OPENCV && target == DNN_TARGET_OPENCL_FP16))
+        (backend == DNN_BACKEND_DEFAULT && target == DNN_TARGET_OPENCL_FP16))
         throw SkipTestException("");
     processNet("dnn/Enet-model-best.net", "", "enet.yml",
             Mat(cv::Size(512, 256), CV_32FC3));
@@ -144,8 +164,7 @@ PERF_TEST_P_(DNNTestNetwork, SSD)
 PERF_TEST_P_(DNNTestNetwork, OpenFace)
 {
     if (backend == DNN_BACKEND_HALIDE ||
-        (backend == DNN_BACKEND_INFERENCE_ENGINE && target == DNN_TARGET_OPENCL_FP16) ||
-        (backend == DNN_BACKEND_INFERENCE_ENGINE && target == DNN_TARGET_MYRIAD))
+        backend == DNN_BACKEND_INFERENCE_ENGINE && target != DNN_TARGET_CPU)
         throw SkipTestException("");
     processNet("dnn/openface_nn4.small2.v1.t7", "", "",
             Mat(cv::Size(96, 96), CV_32FC3));
@@ -159,19 +178,13 @@ PERF_TEST_P_(DNNTestNetwork, MobileNet_SSD_Caffe)
             Mat(cv::Size(300, 300), CV_32FC3));
 }
 
-PERF_TEST_P_(DNNTestNetwork, MobileNet_SSD_v1_TensorFlow)
+// TODO: update MobileNet model.
+PERF_TEST_P_(DNNTestNetwork, MobileNet_SSD_TensorFlow)
 {
-    if (backend == DNN_BACKEND_HALIDE)
+    if (backend == DNN_BACKEND_HALIDE ||
+        backend == DNN_BACKEND_INFERENCE_ENGINE)
         throw SkipTestException("");
-    processNet("dnn/ssd_mobilenet_v1_coco_2017_11_17.pb", "ssd_mobilenet_v1_coco_2017_11_17.pbtxt", "",
-            Mat(cv::Size(300, 300), CV_32FC3));
-}
-
-PERF_TEST_P_(DNNTestNetwork, MobileNet_SSD_v2_TensorFlow)
-{
-    if (backend == DNN_BACKEND_HALIDE)
-        throw SkipTestException("");
-    processNet("dnn/ssd_mobilenet_v2_coco_2018_03_29.pb", "ssd_mobilenet_v2_coco_2018_03_29.pbtxt", "",
+    processNet("dnn/ssd_mobilenet_v1_coco.pb", "ssd_mobilenet_v1_coco.pbtxt", "",
             Mat(cv::Size(300, 300), CV_32FC3));
 }
 
@@ -224,7 +237,9 @@ PERF_TEST_P_(DNNTestNetwork, opencv_face_detector)
 
 PERF_TEST_P_(DNNTestNetwork, Inception_v2_SSD_TensorFlow)
 {
-    if (backend == DNN_BACKEND_HALIDE)
+    if (backend == DNN_BACKEND_HALIDE ||
+        (backend == DNN_BACKEND_INFERENCE_ENGINE && target == DNN_TARGET_OPENCL) ||
+        (backend == DNN_BACKEND_INFERENCE_ENGINE && target == DNN_TARGET_OPENCL_FP16))
         throw SkipTestException("");
     processNet("dnn/ssd_inception_v2_coco_2017_11_17.pb", "ssd_inception_v2_coco_2017_11_17.pbtxt", "",
             Mat(cv::Size(300, 300), CV_32FC3));
@@ -241,23 +256,6 @@ PERF_TEST_P_(DNNTestNetwork, YOLOv3)
     processNet("dnn/yolov3.cfg", "dnn/yolov3.weights", "", inp / 255);
 }
 
-PERF_TEST_P_(DNNTestNetwork, EAST_text_detection)
-{
-    if (backend == DNN_BACKEND_HALIDE ||
-        backend == DNN_BACKEND_INFERENCE_ENGINE && target == DNN_TARGET_MYRIAD)
-        throw SkipTestException("");
-    processNet("dnn/frozen_east_text_detection.pb", "", "", Mat(cv::Size(320, 320), CV_32FC3));
-}
-
-PERF_TEST_P_(DNNTestNetwork, FastNeuralStyle_eccv16)
-{
-    if (backend == DNN_BACKEND_HALIDE ||
-        (backend == DNN_BACKEND_OPENCV && target == DNN_TARGET_OPENCL_FP16) ||
-        (backend == DNN_BACKEND_INFERENCE_ENGINE && target == DNN_TARGET_MYRIAD))
-        throw SkipTestException("");
-    processNet("dnn/fast_neural_style_eccv16_starry_night.t7", "", "", Mat(cv::Size(320, 240), CV_32FC3));
-}
-
 const tuple<DNNBackend, DNNTarget> testCases[] = {
 #ifdef HAVE_HALIDE
     tuple<DNNBackend, DNNTarget>(DNN_BACKEND_HALIDE, DNN_TARGET_CPU),
@@ -269,9 +267,9 @@ const tuple<DNNBackend, DNNTarget> testCases[] = {
     tuple<DNNBackend, DNNTarget>(DNN_BACKEND_INFERENCE_ENGINE, DNN_TARGET_OPENCL_FP16),
     tuple<DNNBackend, DNNTarget>(DNN_BACKEND_INFERENCE_ENGINE, DNN_TARGET_MYRIAD),
 #endif
-    tuple<DNNBackend, DNNTarget>(DNN_BACKEND_OPENCV, DNN_TARGET_CPU),
-    tuple<DNNBackend, DNNTarget>(DNN_BACKEND_OPENCV, DNN_TARGET_OPENCL),
-    tuple<DNNBackend, DNNTarget>(DNN_BACKEND_OPENCV, DNN_TARGET_OPENCL_FP16)
+    tuple<DNNBackend, DNNTarget>(DNN_BACKEND_DEFAULT, DNN_TARGET_CPU),
+    tuple<DNNBackend, DNNTarget>(DNN_BACKEND_DEFAULT, DNN_TARGET_OPENCL),
+    tuple<DNNBackend, DNNTarget>(DNN_BACKEND_DEFAULT, DNN_TARGET_OPENCL_FP16)
 };
 
 INSTANTIATE_TEST_CASE_P(/*nothing*/, DNNTestNetwork, testing::ValuesIn(testCases));

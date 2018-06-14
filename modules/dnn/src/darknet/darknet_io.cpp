@@ -395,10 +395,9 @@ namespace cv {
                 {
                     cv::dnn::LayerParams param;
                     param.name = "Upsample-name";
-                    param.type = "Resize";
+                    param.type = "ResizeNearestNeighbor";
 
                     param.set<int>("zoom_factor", scaleFactor);
-                    param.set<String>("interpolation", "nearest");
 
                     darknet::LayerParameter lp;
                     std::string layer_name = cv::format("upsample_%d", layer_id);

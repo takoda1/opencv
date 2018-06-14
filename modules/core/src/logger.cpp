@@ -21,13 +21,7 @@ namespace logging {
 
 static LogLevel parseLogLevelConfiguration()
 {
-    static cv::String param_log_level = utils::getConfigurationParameterString("OPENCV_LOG_LEVEL",
-#if defined NDEBUG
-            "WARNING"
-#else
-            "INFO"
-#endif
-    );
+    static cv::String param_log_level = utils::getConfigurationParameterString("OPENCV_LOG_LEVEL", "INFO");
     if (param_log_level == "DISABLED" || param_log_level == "disabled" ||
         param_log_level == "0" || param_log_level == "OFF" || param_log_level == "off")
         return LOG_LEVEL_SILENT;

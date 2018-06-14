@@ -26,7 +26,6 @@ static void test(LayerParams& params, Mat& input)
     net.connect(0, 0, lid, 0);
 
     net.setInput(input);
-    net.setPreferableBackend(DNN_BACKEND_OPENCV);
     Mat outputDefault = net.forward(params.name).clone();
 
     net.setPreferableBackend(DNN_BACKEND_HALIDE);
@@ -369,7 +368,6 @@ TEST(MaxPoolUnpool_Halide, Accuracy)
     Mat input({1, 1, 4, 4}, CV_32F);
     randu(input, -1.0f, 1.0f);
     net.setInput(input);
-    net.setPreferableBackend(DNN_BACKEND_OPENCV);
     Mat outputDefault = net.forward("testUnpool").clone();
 
     net.setPreferableBackend(DNN_BACKEND_HALIDE);
@@ -403,7 +401,6 @@ void testInPlaceActivation(LayerParams& lp)
     Mat input({1, kNumChannels, 10, 10}, CV_32F);
     randu(input, -1.0f, 1.0f);
     net.setInput(input);
-    net.setPreferableBackend(DNN_BACKEND_OPENCV);
     Mat outputDefault = net.forward(lp.name).clone();
 
     net.setInput(input);
@@ -582,7 +579,6 @@ TEST_P(Concat, Accuracy)
     randu(input, -1.0f, 1.0f);
 
     net.setInput(input);
-    net.setPreferableBackend(DNN_BACKEND_OPENCV);
     Mat outputDefault = net.forward(concatParam.name).clone();
 
     net.setPreferableBackend(DNN_BACKEND_HALIDE);
@@ -659,7 +655,6 @@ TEST_P(Eltwise, Accuracy)
     randu(input, -1.0f, 1.0f);
 
     net.setInput(input);
-    net.setPreferableBackend(DNN_BACKEND_OPENCV);
     Mat outputDefault = net.forward(eltwiseParam.name).clone();
 
     net.setPreferableBackend(DNN_BACKEND_HALIDE);
@@ -703,7 +698,6 @@ TEST(MixedBackends_Halide_Default_Halide, Accuracy)
     Mat input({4, 3, 5, 6}, CV_32F);
     randu(input, -1.0f, 1.0f);
     net.setInput(input);
-    net.setPreferableBackend(DNN_BACKEND_OPENCV);
     Mat outputDefault = net.forward().clone();
 
     net.setPreferableBackend(DNN_BACKEND_HALIDE);

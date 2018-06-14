@@ -1450,36 +1450,18 @@ void TFImporter::populateNet(Net dstNet)
             connect(layer_id, dstNet, parsePin(layer.input(1)), id, 0);
             data_layouts[name] = DATA_LAYOUT_UNKNOWN;
         }
-        else if (type == "ResizeNearestNeighbor" || type == "ResizeBilinear")
+        else if (type == "ResizeNearestNeighbor")
         {
-            if (layer.input_size() == 2)
-            {
-                Mat outSize = getTensorContent(getConstBlob(layer, value_id, 1));
-                CV_Assert(outSize.type() == CV_32SC1, outSize.total() == 2);
-                layerParams.set("height", outSize.at<int>(0, 0));
-                layerParams.set("width", outSize.at<int>(0, 1));
-            }
-            else if (layer.input_size() == 3)
-            {
-                Mat factorHeight = getTensorContent(getConstBlob(layer, value_id, 1));
-                Mat factorWidth = getTensorContent(getConstBlob(layer, value_id, 2));
-                CV_Assert(factorHeight.type() == CV_32SC1, factorHeight.total() == 1,
-                          factorWidth.type() == CV_32SC1, factorWidth.total() == 1);
-                layerParams.set("zoom_factor_x", factorWidth.at<int>(0));
-                layerParams.set("zoom_factor_y", factorHeight.at<int>(0));
-            }
-            else
-                CV_Assert(layer.input_size() == 2 || layer.input_size() == 3);
+            Mat outSize = getTensorContent(getConstBlob(layer, value_id, 1));
+            CV_Assert(outSize.type() == CV_32SC1, outSize.total() == 2);
 
-            if (type == "ResizeNearestNeighbor")
-                layerParams.set("interpolation", "nearest");
-            else
-                layerParams.set("interpolation", "bilinear");
+            layerParams.set("height", outSize.at<int>(0, 0));
+            layerParams.set("width", outSize.at<int>(0, 1));
 
             if (hasLayerAttr(layer, "align_corners"))
                 layerParams.set("align_corners", getLayerAttr(layer, "align_corners").b());
 
-            int id = dstNet.addLayer(name, "Resize", layerParams);
+            int id = dstNet.addLayer(name, "ResizeNearestNeighbor", layerParams);
             layer_id[name] = id;
 
             connect(layer_id, dstNet, parsePin(layer.input(0)), id, 0);
