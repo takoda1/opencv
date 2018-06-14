@@ -548,6 +548,23 @@ void VideoCapture_create(CvCapture*& capture, Ptr<IVideoCapture>& icap, VideoCap
     } // switch
 }
 
+void VideoCapture_createRC(CvCapture*& capture, Ptr<IVideoCaptureRC>& icap, VideoCaptureAPIs api, const cv::String& filename)
+{
+    switch (api)
+    {
+    default:
+        CV_LOG_WARNING(NULL, "VideoCapture(filename=" << filename << ") was built without support of requested backendID=" << (int)api);
+        break;
+
+#ifdef HAVE_FFMPEG
+    case CAP_FFMPEG:
+        TRY_OPEN(cvCreateFileCapture_FFMPEG_proxyRC(filename))
+        break;
+#endif
+
+    } // switch
+}
+
 
 void VideoWriter_create(CvVideoWriter*& writer, Ptr<IVideoWriter>& iwriter, VideoCaptureAPIs api,
         const String& filename, int fourcc, double fps, const Size& frameSize, bool isColor)

@@ -273,6 +273,97 @@ double VideoCapture::get(int propId) const
 }
 
 
+
+/*
+RCVideoCapture implementation by Chase and Takoda
+*/
+
+RCVideoCapture::RCVideoCapture()
+{}
+
+RCVideoCapture::RCVideoCapture(const String& filename){
+    CV_TRACE_FUNCTION();
+    open(filename);
+}
+
+RCVideoCapture::~RCVideoCapture(){
+    CV_TRACE_FUNCTION();
+
+    icap.release();
+}
+
+bool RCVideoCapture::open(const String& filename)
+{
+    CV_TRACE_FUNCTION();
+
+    if (isOpened()) release();
+    int apiPreference = CAP_FFMPEG;
+    const std::vector<VideoBackendInfo> backends = cv::videoio_registry::getAvailableBackends_CaptureByFilename();
+    for (size_t i = 0; i < backends.size(); i++)
+    {
+        const VideoBackendInfo& info = backends[i];
+        if (apiPreference == CAP_ANY || apiPreference == info.id)
+        {
+            CvCapture* capture = NULL;
+            VideoCapture_createRC(capture, icap, info.id, filename);
+            if (!icap.empty())
+            {
+                if (icap->isOpened())
+                    return true;
+                icap.release();
+            }
+        }
+    }
+    return false;
+}
+
+bool RCVideoCapture::isOpened() const
+{
+    return (!icap.empty());
+}
+
+void RCVideoCapture::release(){
+    CV_TRACE_FUNCTION();
+    icap.release();
+}
+
+bool RCVideoCapture::grab(int targetSize){
+    CV_INSTRUMENT_REGION();
+
+    return icap->grabFrame(targetSize);
+}
+
+bool RCVideoCapture::retrieve(OutputArray& image, int actualSize, int mapId){
+    CV_INSTRUMENT_REGION();
+
+    return icap->retrieveFrame(image, actualSize, mapId);
+}
+
+bool RCVideoCapture::read(int targetSize, OutputArray& image, int actualSize, int mapId){
+    CV_INSTRUMENT_REGION()
+
+    if(grab(targetSize))
+        retrieve(image, actualSize, mapId);
+    else
+        image.release();
+    return !image.empty();
+}
+
+//bool RCVideoCapture::setSaliencyMap(const Mat& saliencyMap, int id){}
+
+//Mat RCVideoCapture::getSaliencyMap(){}
+
+bool RCVideoCapture::set(int propId, double value){
+    return icap->setProperty(propId, value);
+}
+
+double RCVideoCapture::get(int propId) const
+{
+    return icap->getProperty(propId);
+}
+
+
+
 //=================================================================================================
 
 

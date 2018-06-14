@@ -57,6 +57,11 @@ OPENCV_FFMPEG_API int cvWriteFrame_FFMPEG(struct CvVideoWriter_FFMPEG* writer, c
 
 OPENCV_FFMPEG_API void cvReleaseVideoWriter_FFMPEG(struct CvVideoWriter_FFMPEG** writer);
 
+//next two lines added by chase and takoda
+OPENCV_FFMPEG_API int cvGrabFrame_FFMPEG_RC(struct CvCapture_FFMPEG* cap, int targetSize);
+OPENCV_FFMPEG_API int cvRetrieveFrame_FFMPEG_RC(struct CvCapture_FFMPEG* capture, unsigned char** data,
+                                             int* step, int* width, int* height, int* cn, int* actualSize, int* mapId);
+
 typedef CvCapture_FFMPEG* (*CvCreateFileCapture_Plugin)( const char* filename );
 typedef CvCapture_FFMPEG* (*CvCreateCameraCapture_Plugin)( int index );
 typedef int (*CvGrabFrame_Plugin)( CvCapture_FFMPEG* capture_handle );
@@ -71,6 +76,10 @@ typedef int (*CvWriteFrame_Plugin)( CvVideoWriter_FFMPEG* writer_handle, const u
                                     int width, int height, int cn, int origin);
 typedef void (*CvReleaseVideoWriter_Plugin)( CvVideoWriter_FFMPEG** writer );
 
+//added by chase and takoda
+typedef int (*CvGrabFrameRC_Plugin)(void* capture_handle, int targetSize);
+typedef int (*CvRetrieveFrameRC_Plugin)(void* capture_handle, unsigned char** data, int* step,
+                                       int* width, int* height, int* cn, int* actualSize, int* mapId );
 /*
  * For CUDA encoder
  */

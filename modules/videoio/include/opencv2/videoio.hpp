@@ -812,6 +812,50 @@ protected:
     Ptr<IVideoCapture> icap;
 };
 
+
+class IVideoCaptureRC;
+
+class CV_EXPORTS_W RCVideoCapture{
+
+    /*
+        RCVideoCapture class definition
+        RCVideoCapture provides similar function to VideoCapture
+        but with frame by frame rate control.
+    */
+    public:
+    
+    CV_WRAP RCVideoCapture();
+    //no apipreference constructor because we are implementing using ffmpeg
+    CV_WRAP RCVideoCapture(const String& url);
+
+    CV_WRAP virtual bool open(const String& url);
+
+    CV_WRAP virtual bool isOpened() const;
+
+    CV_WRAP virtual bool grab(int targetSize);
+
+    virtual ~RCVideoCapture();
+
+    CV_WRAP virtual void release();
+    
+    CV_WRAP virtual bool retrieve(OutputArray& image, int actualSize, int mapId);
+
+    CV_WRAP virtual bool read(int targetSize, OutputArray& image, int actualSize, int mapId);
+
+    CV_WRAP virtual bool set(int propId, double value);
+
+    CV_WRAP virtual double get(int propId) const;
+
+    //CV_WRAP virtual bool setSaliencyMap(const Mat& saliencyMap, int id);
+
+    //CV_WRAP virtual Mat getSaliencyMap();
+
+    int targetBitrate;
+
+protected:
+    Ptr<IVideoCaptureRC> icap;
+};
+
 class IVideoWriter;
 
 /** @example videowriter_basic.cpp

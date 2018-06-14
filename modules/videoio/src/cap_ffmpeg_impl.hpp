@@ -440,6 +440,10 @@ struct CvCapture_FFMPEG
     bool grabFrame();
     bool retrieveFrame(int, unsigned char** data, int* step, int* width, int* height, int* cn);
 
+    //next two lines added by Chase and Takoda for RC implementation
+    bool grabFrame(int);
+    bool retrieveFrame(int, unsigned char** data, int* step, int* width, int* height, int* cn, int* actualSize, int* mapId);
+
     void init();
 
     void    seek(int64_t frame_number);
@@ -470,6 +474,9 @@ struct CvCapture_FFMPEG
     int64_t frame_number, first_frame_number;
 
     double eps_zero;
+
+    //added by chase and takoda
+    int targetSize;
 /*
    'filename' contains the filename of the videosource,
    'filename==NULL' indicates that ffmpeg's seek support works
@@ -1110,6 +1117,174 @@ bool CvCapture_FFMPEG::retrieveFrame(int, unsigned char** data, int* step, int* 
     return true;
 }
 
+
+/*
+added by Chase and Takoda for RC implementation
+*/
+bool CvCapture_FFMPEG::grabFrame(int size)
+{
+    targetSize = size;
+    bool valid = false;
+    int got_picture;
+
+    int count_errs = 0;
+    const int max_number_of_attempts = 1 << 9;
+
+    if( !ic || !video_st )  return false;
+
+    if( ic->streams[video_stream]->nb_frames > 0 &&
+        frame_number > ic->streams[video_stream]->nb_frames )
+        return false;
+
+    picture_pts = AV_NOPTS_VALUE_;
+
+#if USE_AV_INTERRUPT_CALLBACK
+    // activate interrupt callback
+    get_monotonic_time(&interrupt_metadata.value);
+    interrupt_metadata.timeout_after_ms = LIBAVFORMAT_INTERRUPT_READ_TIMEOUT_MS;
+#endif
+
+    // get the next frame
+    while (!valid)
+    {
+
+        _opencv_ffmpeg_av_packet_unref (&packet);
+
+#if USE_AV_INTERRUPT_CALLBACK
+        if (interrupt_metadata.timeout)
+        {
+            valid = false;
+            break;
+        }
+#endif
+
+        int ret = av_read_frame(ic, &packet);
+        if (ret == AVERROR(EAGAIN)) continue;
+
+        /* else if (ret < 0) break; */
+
+        if( packet.stream_index != video_stream )
+        {
+            _opencv_ffmpeg_av_packet_unref (&packet);
+            count_errs++;
+            if (count_errs > max_number_of_attempts)
+                break;
+            continue;
+        }
+
+        // Decode video frame
+        #if LIBAVFORMAT_BUILD >= CALC_FFMPEG_VERSION(53, 2, 0)
+            avcodec_decode_video2(video_st->codec, picture, &got_picture, &packet);
+        #elif LIBAVFORMAT_BUILD > 4628
+                avcodec_decode_video(video_st->codec,
+                                     picture, &got_picture,
+                                     packet.data, packet.size);
+        #else
+                avcodec_decode_video(&video_st->codec,
+                                     picture, &got_picture,
+                                     packet.data, packet.size);
+        #endif
+
+        // Did we get a video frame?
+        if(got_picture)
+        {
+            //picture_pts = picture->best_effort_timestamp;
+            if( picture_pts == AV_NOPTS_VALUE_ )
+                picture_pts = picture->pkt_pts != AV_NOPTS_VALUE_ && picture->pkt_pts != 0 ? picture->pkt_pts : picture->pkt_dts;
+
+            frame_number++;
+            valid = true;
+        }
+        else
+        {
+            count_errs++;
+            if (count_errs > max_number_of_attempts)
+                break;
+        }
+    }
+
+    if( valid && first_frame_number < 0 )
+        first_frame_number = dts_to_frame_number(picture_pts);
+
+#if USE_AV_INTERRUPT_CALLBACK
+    // deactivate interrupt callback
+    interrupt_metadata.timeout_after_ms = 0;
+#endif
+
+    // return if we have a new picture or not
+    return valid;
+}
+
+bool CvCapture_FFMPEG::retrieveFrame(int, unsigned char** data, int* step, int* width, int* height, int* cn, int* actualSize, int* mapId)
+{
+    if( !video_st || !picture->data[0] )
+        return false;
+
+    if( img_convert_ctx == NULL ||
+        frame.width != video_st->codec->width ||
+        frame.height != video_st->codec->height ||
+        frame.data == NULL )
+    {
+        // Some sws_scale optimizations have some assumptions about alignment of data/step/width/height
+        // Also we use coded_width/height to workaround problem with legacy ffmpeg versions (like n0.8)
+        int buffer_width = video_st->codec->coded_width, buffer_height = video_st->codec->coded_height;
+
+        img_convert_ctx = sws_getCachedContext(
+                img_convert_ctx,
+                buffer_width, buffer_height,
+                video_st->codec->pix_fmt,
+                buffer_width, buffer_height,
+                AV_PIX_FMT_BGR24,
+                SWS_BICUBIC,
+                NULL, NULL, NULL
+                );
+
+        if (img_convert_ctx == NULL)
+            return false;//CV_Error(0, "Cannot initialize the conversion context!");
+
+#if USE_AV_FRAME_GET_BUFFER
+        av_frame_unref(&rgb_picture);
+        rgb_picture.format = AV_PIX_FMT_BGR24;
+        rgb_picture.width = buffer_width;
+        rgb_picture.height = buffer_height;
+        if (0 != av_frame_get_buffer(&rgb_picture, 32))
+        {
+            CV_WARN("OutOfMemory");
+            return false;
+        }
+#else
+        int aligns[AV_NUM_DATA_POINTERS];
+        avcodec_align_dimensions2(video_st->codec, &buffer_width, &buffer_height, aligns);
+        rgb_picture.data[0] = (uint8_t*)realloc(rgb_picture.data[0],
+                _opencv_ffmpeg_av_image_get_buffer_size( AV_PIX_FMT_BGR24,
+                                    buffer_width, buffer_height ));
+        _opencv_ffmpeg_av_image_fill_arrays(&rgb_picture, rgb_picture.data[0],
+                        AV_PIX_FMT_BGR24, buffer_width, buffer_height );
+#endif
+        frame.width = video_st->codec->width;
+        frame.height = video_st->codec->height;
+        frame.cn = 3;
+        frame.data = rgb_picture.data[0];
+        frame.step = rgb_picture.linesize[0];
+    }
+
+    sws_scale(
+            img_convert_ctx,
+            picture->data,
+            picture->linesize,
+            0, video_st->codec->coded_height,
+            rgb_picture.data,
+            rgb_picture.linesize
+            );
+
+    *data = frame.data;
+    *step = frame.step;
+    *width = frame.width;
+    *height = frame.height;
+    *cn = frame.cn;
+
+    return true;
+}
 
 double CvCapture_FFMPEG::getProperty( int property_id ) const
 {
@@ -2229,6 +2404,19 @@ int cvGrabFrame_FFMPEG(CvCapture_FFMPEG* capture)
 int cvRetrieveFrame_FFMPEG(CvCapture_FFMPEG* capture, unsigned char** data, int* step, int* width, int* height, int* cn)
 {
     return capture->retrieveFrame(0, data, step, width, height, cn);
+}
+
+
+/*
+next two methods added by Takoda and Chase for RC implementation
+*/
+int cvGrabFrame_FFMPEG_RC(CvCapture_FFMPEG* capture, int targetSize){
+
+    return capture->grabFrame(targetSize);
+}
+
+int cvRetrieveFrame_FFMPEG_RC(CvCapture_FFMPEG* capture, unsigned char** data, int* step, int* width, int* height, int* cn, int* actualSize, int* mapId){
+    return capture->retrieveFrame(0, data, step, width, height, cn, actualSize, mapId);
 }
 
 CvVideoWriter_FFMPEG* cvCreateVideoWriter_FFMPEG( const char* filename, int fourcc, double fps,

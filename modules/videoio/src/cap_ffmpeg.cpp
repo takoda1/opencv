@@ -58,6 +58,9 @@
 #define icvReleaseVideoWriter_FFMPEG_p cvReleaseVideoWriter_FFMPEG
 #define icvWriteFrame_FFMPEG_p cvWriteFrame_FFMPEG
 
+//next two lines by chase and takoda
+#define icvGrabFrame_FFMPEG_RC_p cvGrabFrame_FFMPEG_RC
+#define icvRetrieveFrame_FFMPEG_RC_p cvRetrieveFrame_FFMPEG_RC
 #else
 
 #include "cap_ffmpeg_api.hpp"
@@ -73,6 +76,10 @@ static CvGetCaptureProperty_Plugin icvGetCaptureProperty_FFMPEG_p = 0;
 static CvCreateVideoWriter_Plugin icvCreateVideoWriter_FFMPEG_p = 0;
 static CvReleaseVideoWriter_Plugin icvReleaseVideoWriter_FFMPEG_p = 0;
 static CvWriteFrame_Plugin icvWriteFrame_FFMPEG_p = 0;
+
+//next two lines by chase and takoda
+static CvGrabFrameRC_Plugin icvGrabFrame_FFMPEG_RC_p = 0;
+static CvRetrieveFrameRC_Plugin icvRetrieveFrame_FFMPEG_RC_p = 0;
 
 static cv::Mutex _icvInitFFMPEG_mutex;
 
@@ -176,6 +183,12 @@ private:
                 (CvReleaseVideoWriter_Plugin)GetProcAddress(icvFFOpenCV, "cvReleaseVideoWriter_FFMPEG");
             icvWriteFrame_FFMPEG_p =
                 (CvWriteFrame_Plugin)GetProcAddress(icvFFOpenCV, "cvWriteFrame_FFMPEG");
+
+                //next four lines by chase and takoda
+            icvGrabFrame_FFMPEG_RC_p = 
+                (CvGrabFrameRC_Plugin)GetProcAddress(icvFFOpenCV, "cvGrabFrame_FFMPEG_RC");
+            icvRetrieveFrame_FFMPEG_RC_p = 
+                (CvRetrieveFrameRC_Plugin)GetProcAddress(icvFFOpenCV, "cvRetrieveFrame_FFMPEG_RC");
 # endif // _WIN32
 #if 0
             if( icvCreateFileCapture_FFMPEG_p != 0 &&
@@ -264,6 +277,65 @@ protected:
     CvCapture_FFMPEG* ffmpegCapture;
 };
 
+//added by chase and takoda
+class CvCapture_FFMPEG_proxyRC CV_FINAL : public cv::IVideoCaptureRC
+{
+public:
+    CvCapture_FFMPEG_proxyRC() { ffmpegCapture = 0; }
+    CvCapture_FFMPEG_proxyRC(const cv::String& filename) { ffmpegCapture = 0; open(filename); }
+    virtual ~CvCapture_FFMPEG_proxyRC() { close(); }
+
+    virtual bool grabFrame(int targetSize) CV_OVERRIDE
+    {
+        return ffmpegCapture ? icvGrabFrame_FFMPEG_RC_p(ffmpegCapture, targetSize)!=0 : false;
+    }
+    virtual bool retrieveFrame(cv::OutputArray frame, int actualSize, int mapId) CV_OVERRIDE
+    {
+        unsigned char* data = 0;
+        int step=0, width=0, height=0, cn=0;
+
+        if (!ffmpegCapture ||
+           icvRetrieveFrame_FFMPEG_RC_p(ffmpegCapture, &data, &step, &width, &height, &cn, &actualSize, &mapId))
+            return false;
+        cv::Mat(height, width, CV_MAKETYPE(CV_8U, cn), data, step).copyTo(frame);
+        return true;
+    }
+
+    virtual double getProperty(int propId) const CV_OVERRIDE
+    {
+        return ffmpegCapture ? icvGetCaptureProperty_FFMPEG_p(ffmpegCapture, propId) : 0;
+    }
+    virtual bool setProperty(int propId, double value) CV_OVERRIDE
+    {
+        return ffmpegCapture ? icvSetCaptureProperty_FFMPEG_p(ffmpegCapture, propId, value)!=0 : false;
+    }
+
+    virtual bool open( const cv::String& filename )
+    {
+        close();
+
+        ffmpegCapture = icvCreateFileCapture_FFMPEG_p( filename.c_str() );
+        return ffmpegCapture != 0;
+    }
+    virtual void close()
+    {
+        if (ffmpegCapture
+#if defined(HAVE_FFMPEG_WRAPPER)
+                && icvReleaseCapture_FFMPEG_p
+#endif
+)
+            icvReleaseCapture_FFMPEG_p( &ffmpegCapture );
+        CV_Assert(ffmpegCapture == 0);
+        ffmpegCapture = 0;
+    }
+
+    virtual bool isOpened() const CV_OVERRIDE { return ffmpegCapture != 0; }
+    virtual int getCaptureDomain() CV_OVERRIDE { return CV_CAP_FFMPEG; }
+
+protected:
+    CvCapture_FFMPEG* ffmpegCapture;
+};
+
 } // namespace
 
 cv::Ptr<cv::IVideoCapture> cvCreateFileCapture_FFMPEG_proxy(const cv::String& filename)
@@ -277,6 +349,14 @@ cv::Ptr<cv::IVideoCapture> cvCreateFileCapture_FFMPEG_proxy(const cv::String& fi
     if (capture && capture->isOpened())
         return capture;
     return cv::Ptr<cv::IVideoCapture>();
+}
+
+//added by chase and takoda
+cv::Ptr<cv::IVideoCaptureRC> cvCreateFileCapture_FFMPEG_proxyRC(const cv::String& filename){
+    cv::Ptr<CvCapture_FFMPEG_proxyRC> capture = cv::makePtr<CvCapture_FFMPEG_proxyRC>(filename);
+    if (capture && capture->isOpened())
+        return capture;
+    return cv::Ptr<cv::IVideoCaptureRC>();
 }
 
 namespace {

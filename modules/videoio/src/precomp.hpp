@@ -169,6 +169,19 @@ namespace cv
         virtual int getCaptureDomain() { return CAP_ANY; } // Return the type of the capture object: CAP_VFW, etc...
     };
 
+    //added by chase and takoda
+    class IVideoCaptureRC
+    {
+    public:
+        virtual ~IVideoCaptureRC() {}
+        virtual double getProperty(int) const { return 0; }
+        virtual bool setProperty(int, double) { return false; }
+        virtual bool grabFrame(int) = 0;
+        virtual bool retrieveFrame(OutputArray, int, int) = 0;
+        virtual bool isOpened() const = 0;
+        virtual int getCaptureDomain() { return CAP_ANY; } // Return the type of the capture object: CAP_VFW, etc...
+    };
+
     class IVideoWriter
     {
     public:
@@ -193,6 +206,10 @@ namespace cv
     Ptr<IVideoCapture> createGStreamerCapture(int index);
 
     Ptr<cv::IVideoCapture> cvCreateFileCapture_FFMPEG_proxy(const String& filename);
+    
+    //added by chase and takoda
+    Ptr<cv::IVideoCaptureRC> cvCreateFileCapture_FFMPEG_proxyRC(const String& filename);
+
     Ptr<IVideoWriter> cvCreateVideoWriter_FFMPEG_proxy(const String& filename, int fourcc, double fps, Size frameSize, int isColor);
 
     Ptr<IVideoCapture> cvCreateCapture_MSMF(int index);
